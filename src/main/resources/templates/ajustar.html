@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="pt-br" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: 'Arial Black', sans-serif; background-color: #f1f1f1; padding: 30px; }
+        .box-g { background: white; padding: 40px; border-radius: 30px; border: 8px solid #c35a26; max-width: 1000px; margin: auto; text-align: center; }
+        h2 { color: #c35a26; font-size: 40px; text-transform: uppercase; }
+        label { display: block; text-align: left; font-size: 24px; font-weight: 900; margin-top: 15px; }
+        select, input { width: 100%; padding: 15px; font-size: 24px; border: 3px solid #000; border-radius: 10px; font-weight: bold; }
+        .tabela-hist { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 22px; }
+        .tabela-hist td { padding: 15px; border-bottom: 2px solid #eee; text-align: left; }
+        .btn-edit { padding: 10px 20px; background: #3498db; color: white; text-decoration: none; border-radius: 10px; font-size: 18px; font-weight: 900; }
+        .form-edicao { background: #fff3cd; padding: 30px; border-radius: 20px; border: 4px solid #000; margin-top: 30px; }
+        .btn-save { width: 100%; padding: 20px; background: #27ae60; color: white; font-size: 30px; font-weight: 900; border-radius: 15px; margin-top: 30px; border: none; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="box-g">
+        <h2>5. GERENCIAR LANÇAMENTOS</h2>
+        
+        <form action="/editar-lancamento" method="get">
+            <label>SELECIONE O FUNCIONÁRIO:</label>
+            <select name="registro" onchange="this.form.submit()">
+                <option value="">-- ESCOLHA UM NOME --</option>
+                <option th:each="f : ${lista}" th:value="${f.registro}" th:text="${f.nome}" th:selected="${fSel != null && f.registro == fSel.registro}"></option>
+            </select>
+        </form>
+
+        <div th:if="${fSel != null}">
+            <table class="tabela-hist">
+                <tr th:each="h, iter : ${fSel.historico}">
+                    <td th:text="${h}"></td>
+                    <td><a th:href="@{/editar-lancamento(registro=${fSel.registro}, idx=${iter.index})}" class="btn-edit">EDITAR</a></td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="form-edicao" th:if="${idxEd != null}">
+            <h3 style="font-size: 30px; color: #c35a26;">EDITANDO LANÇAMENTO</h3>
+            <form action="/confirmar-edicao" method="post">
+                <input type="hidden" name="registro" th:value="${fSel.registro}">
+                <input type="hidden" name="indice" th:value="${idxEd}">
+                <label>DATA:</label>
+                <input type="text" name="dataRef" th:value="${dataEd}" required>
+                <label>HORA (HH:MM):</label>
+                <input type="text" name="valor" th:value="${horaEd}" required>
+                <label>TIPO:</label>
+                <select name="tipo">
+                    <option value="credito" th:selected="${tipoEd == 'credito'}">CRÉDITO (+)</option>
+                    <option value="debito" th:selected="${tipoEd == 'debito'}">DÉBITO (-)</option>
+                </select>
+                <button type="submit" class="btn-save">SALVAR ALTERAÇÃO</button>
+            </form>
+        </div>
+        <a href="/dashboard" style="display:block; margin-top:30px; font-size:22px; font-weight:900; color:#666; text-decoration:none;">← VOLTAR</a>
+    </div>
+</body>
+</html>

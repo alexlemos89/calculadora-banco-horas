@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="pt-br" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>SISTEMA IMREA - DASHBOARD</title>
+    <style>
+        body { font-family: Arial; background-color: #f4f7f6; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .container { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; width: 600px; }
+        h2 { font-size: 28px; margin-bottom: 20px; color: #333; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .btn { padding: 25px; border-radius: 10px; color: white; font-size: 18px; font-weight: bold; text-decoration: none; display: flex; align-items: center; justify-content: center; }
+        .btn-5 { background-color: #d35400; } /* EDITAR LANÇAMENTO */
+        .btn-6 { background-color: #b49600; } /* EDITAR CARGA */
+        .btn-other { background-color: #2980b9; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>DASHBOARD IMREA</h2>
+    <div class="grid">
+        <a href="/registrar" class="btn btn-other">1. Registrar Funcionário</a>
+        <a href="/consultar" class="btn btn-other">2. Consultar Detalhes</a>
+        <a href="/lancar" class="btn btn-other">3. Lançar Horas</a>
+        <a href="/relatorio" class="btn btn-other">4. Relatório Geral</a>
+        <a href="/editar-lancamento" class="btn btn-5">5. Editar Lançamento</a>
+        <a href="/editar-carga" class="btn btn-6">6. Editar Carga Horária</a>
+        <a href="/excluir" class="btn btn-other">7. Excluir Funcionário</a>
+        <a href="/senhas" class="btn btn-other">8. Gerenciar Senhas</a>
+    </div>
+</div>
+</body>
+</html>

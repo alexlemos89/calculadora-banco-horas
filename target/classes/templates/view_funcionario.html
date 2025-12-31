@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="pt-br" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: 'Arial Black', sans-serif; background-color: #f1f1f1; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
+        .box-g { background: white; padding: 50px; border-radius: 30px; border: 8px solid #27ae60; width: 850px; text-align: center; box-shadow: 0 15px 35px rgba(0,0,0,0.2); }
+        h2 { color: #27ae60; font-size: 45px; text-transform: uppercase; }
+        .label { font-size: 28px; color: #666; margin-top: 30px; font-weight: 900; }
+        .saldo { font-size: 110px; color: #2c3e50; font-weight: 900; margin: 10px 0; }
+        .ref-dias { font-size: 35px; color: #2980b9; font-weight: 900; margin-bottom: 30px; display: block; }
+        .hist { text-align: left; background: #eee; padding: 25px; border-radius: 20px; border: 3px solid #000; font-size: 24px; }
+        .btn-sair { display: block; margin-top: 40px; padding: 25px; background-color: #c0392b; color: white; border-radius: 15px; font-size: 30px; font-weight: 900; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="box-g">
+        <h2 th:text="'OLÁ, ' + ${funcionario.nome}"></h2>
+        <div class="label">SEU SALDO ATUAL:</div>
+        <div class="saldo" th:text="${funcionario.getSaldoFormatado()}"></div>
+        <div class="ref-dias" th:text="${funcionario.getReferenciaDias()}"></div>
+        
+        <div class="hist">
+            <div style="font-weight: 900; border-bottom: 2px solid #000; margin-bottom: 10px;">HISTÓRICO:</div>
+            <div th:each="h : ${funcionario.historico}" th:text="${h}"></div>
+        </div>
+
+        <a href="/" class="btn-sair">SAIR / LOGOFF</a>
+    </div>
+</body>
+</html>

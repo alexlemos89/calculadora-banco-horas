@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="pt-br" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: 'Arial Black', sans-serif; background-color: #f1f1f1; padding: 20px; }
+        .box-g { background: white; padding: 40px; border-radius: 30px; border: 8px solid #27ae60; max-width: 1300px; margin: auto; text-align: center; }
+        h2 { color: #27ae60; font-size: 45px; text-transform: uppercase; }
+        table { width: 100%; border-collapse: collapse; font-size: 22px; }
+        th { background-color: #27ae60; color: white; padding: 15px; text-transform: uppercase; }
+        td { padding: 15px; border-bottom: 3px solid #eee; font-weight: bold; vertical-align: middle; }
+        .voltar { display: block; margin-top: 40px; font-size: 28px; color: #666; text-decoration: none; font-weight: 900; }
+        
+        /* Cores para destacar as colunas calculadas */
+        .txt-diario { color: #000; }
+        .txt-semanal { color: #2980b9; }
+        .txt-mensal { color: #8e44ad; }
+    </style>
+</head>
+<body>
+    <div class="box-g">
+        <h2>2. CONSULTA DE SALDOS</h2>
+        <table>
+            <tr>
+                <th>NOME / RE</th>
+                <th>CARGA DIÁRIA</th>
+                <th>SEMANAL (5D)</th>
+                <th>MENSAL (22D)</th>
+                <th>SALDO ATUAL</th>
+            </tr>
+            <tr th:each="f : ${lista}">
+                <td>
+                    <span th:text="${f.nome}"></span><br>
+                    <small style="color: #666;" th:text="'RE: ' + ${f.registro}"></small>
+                </td>
+                
+                <td class="txt-diario" th:text="${f.getCargaDiariaFormatada()}"></td>
+                <td class="txt-semanal" th:text="${f.getCargaSemanalFormatada()}"></td>
+                <td class="txt-mensal" th:text="${f.getCargaMensalFormatada()}"></td>
+                
+                <td>
+                    <span th:text="${f.getSaldoFormatado()}" style="font-size: 30px;"></span><br>
+                    <small style="color: #27ae60;" th:text="${f.getReferenciaDias()}"></small>
+                </td>
+            </tr>
+        </table>
+        <a href="/dashboard" class="voltar">← VOLTAR</a>
+    </div>
+</body>
+</html>
