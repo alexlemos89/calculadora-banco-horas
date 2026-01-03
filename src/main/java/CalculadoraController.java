@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import javax.servlet.http.HttpSession; // Corrigido para a sua versão do Java
 import java.util.List;
 
 @Controller
@@ -32,7 +33,6 @@ public class CalculadoraController {
     @GetMapping("/dashboard")
     public String dashboard() { return "index"; }
 
-    // TELA 1: REGISTRO
     @GetMapping("/registrar")
     public String registrar() { return "registro"; }
 
@@ -44,13 +44,12 @@ public class CalculadoraController {
         f.setNome(nome);
         f.setRegistro(registro);
         f.setTipoCarga(tipoCarga);
-        f.setCargaHorariaStr(horasCargaStr); // Salva apenas o tempo (Ex: 08:00)
+        f.setCargaHorariaStr(horasCargaStr);
         f.setSenha(senha);
         dataService.salvar(f);
         return "redirect:/consultar";
     }
 
-    // TELA 2: CONSULTA
     @GetMapping("/consultar")
     public String consultar(Model model) {
         model.addAttribute("lista", dataService.listarTodos());
@@ -113,7 +112,6 @@ public class CalculadoraController {
         return "redirect:/relatorio";
     }
 
-    // TELA 6: EDITAR CARGA
     @GetMapping("/editar-carga")
     public String edCarga(Model model) {
         model.addAttribute("lista", dataService.listarTodos());
@@ -155,5 +153,14 @@ public class CalculadoraController {
     public String alterarSenha(@RequestParam String registro, @RequestParam String novaSenha) {
         dataService.alterarSenha(registro, novaSenha);
         return "redirect:/dashboard";
+    }
+
+    // NOVA ROTA DE LOGOUT
+    @GetMapping("/logout")
+    public String logout(HttpSession session) {
+        if (session != null) {
+            session.invalidate();
+        }
+        return "redirect:/";
     }
 }

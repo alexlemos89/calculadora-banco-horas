@@ -1,1 +1,1 @@
-{"1234":{"nome":"teste","registro":"1234","tipoCarga":"DIÁRIA","cargaHorariaStr":"8:00","senha":"1234","saldoMinutos":0,"historico":[]}}
+{"1234":{"nome":"teste","registro":"1234","tipoCarga":"DIÁRIA","cargaHorariaStr":"8:00","senha":"1234","saldoMinutos":-1920,"historico":["01/2026 - 12:00 (DÉBITO)","12/2025 - 20:00 (DÉBITO)"]}}
