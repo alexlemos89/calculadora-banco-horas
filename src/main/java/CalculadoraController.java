@@ -5,7 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
-import javax.servlet.http.HttpSession; // Corrigido para a sua versão do Java
+import javax.servlet.http.HttpSession;
 import java.util.List;
 
 @Controller
@@ -18,13 +18,19 @@ public class CalculadoraController {
     public String inicial() { return "login"; }
 
     @PostMapping("/logar")
-    public String logar(@RequestParam String usuario, @RequestParam String senha, Model model) {
+    public String logar(@RequestParam String usuario, @RequestParam String senha, Model model, HttpSession session) {
+        // LOGIN ADMIN
         if ("administrador".equals(usuario) && "imrealapa".equals(senha)) {
+            session.setAttribute("admin", true);
             return "redirect:/dashboard";
         }
+        
+        // LOGIN COLABORADOR (Pedido: Consulta Individual)
         Funcionario f = dataService.buscar(usuario);
         if (f != null && f.getSenha().equals(senha)) {
+            session.setAttribute("usuarioLogado", f.getRegistro());
             model.addAttribute("funcionario", f);
+            model.addAttribute("resumoAnual", f.getResumoAnualFormatado()); // Usa a lógica por ano que criamos
             return "view_funcionario"; 
         }
         return "redirect:/?erro";
@@ -47,12 +53,14 @@ public class CalculadoraController {
         f.setCargaHorariaStr(horasCargaStr);
         f.setSenha(senha);
         dataService.salvar(f);
-        return "redirect:/consultar";
+        
+        // MUDANÇA: Agora ele volta para a tela de registro vazia para novo preenchimento
+        return "redirect:/registrar?sucesso"; 
     }
 
     @GetMapping("/consultar")
     public String consultar(Model model) {
-        model.addAttribute("lista", dataService.listarTodos());
+        model.addAttribute("lista", dataService.listarTodos()); // ListarTodos já está em ordem alfabética no Service
         return "consulta";
     }
 
@@ -70,14 +78,23 @@ public class CalculadoraController {
             int mins = (Integer.parseInt(partes[0]) * 60) + Integer.parseInt(partes[1]);
             if ("debito".equals(tipo)) mins = -mins;
             dataService.adicionarHoras(registro, mins, dataRef);
-        } catch (Exception e) { return "redirect:/dashboard?erro"; }
-        return "redirect:/relatorio";
+        } catch (Exception e) { return "redirect:/lancar?erro"; }
+        
+        // MUDANÇA: Volta para a tela de lançar para poder lançar outro (ou clicar em finalizar)
+        return "redirect:/lancar?sucesso"; 
     }
 
     @GetMapping("/relatorio")
     public String relatorio(Model model) {
         model.addAttribute("lista", dataService.listarTodos());
         return "relatorio";
+    }
+
+    // NOVA ROTA: Excluir Lançamento (Lixeira na tela de Ajustar)
+    @GetMapping("/excluir-lancamento")
+    public String excluirLanc(@RequestParam String registro, @RequestParam int idx) {
+        dataService.excluirLancamento(registro, idx);
+        return "redirect:/editar-lancamento?registro=" + registro;
     }
 
     @GetMapping("/editar-lancamento")
@@ -155,7 +172,6 @@ public class CalculadoraController {
         return "redirect:/dashboard";
     }
 
-    // NOVA ROTA DE LOGOUT
     @GetMapping("/logout")
     public String logout(HttpSession session) {
         if (session != null) {

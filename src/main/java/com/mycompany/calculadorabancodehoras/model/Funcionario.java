@@ -1,95 +1,106 @@
 package com.mycompany.calculadorabancodehoras;
 
-import com.fasterxml.jackson.annotation.JsonIgnore; // IMPORTANTE: Adicione este import
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import javax.persistence.*;
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
+@Entity
+@Table(name = "funcionarios")
 public class Funcionario implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    private String nome;
+    @Id
     private String registro;
-    private String tipoCarga; // DIÁRIA, SEMANAL ou MENSAL
+    private String nome;
+    private String tipoCarga; 
     private String cargaHorariaStr;
     private String senha;
     private long saldoMinutos = 0;
+
+    // Mudamos o histórico para aceitar uma estrutura mais completa (ano, valor, data)
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "historico_detalhado", joinColumns = @JoinColumn(name = "funcionario_id"))
     private List<String> historico = new ArrayList<>();
 
     public Funcionario() {}
 
-    // --- LÓGICA DE CONVERSÃO AUTOMÁTICA ---
+    // --- NOVA LÓGICA: SALDO POR ANO ---
+    @JsonIgnore
+    @Transient
+    public Map<Integer, Long> getSaldosPorAno() {
+        Map<Integer, Long> saldos = new TreeMap<>(Collections.reverseOrder()); // Anos mais recentes primeiro
+        
+        for (String h : historico) {
+            try {
+                // Formato esperado: "2024-05-10 - 02:00 (CRÉDITO)"
+                String dataStr = h.split(" - ")[0];
+                int ano = Integer.parseInt(dataStr.substring(0, 4));
+                
+                String[] partes = h.split(" - ");
+                String horaStr = partes[1].substring(0, 5);
+                String[] hm = horaStr.split(":");
+                long m = (Long.parseLong(hm[0].trim()) * 60) + Long.parseLong(hm[1].trim());
+                
+                if (h.contains("DÉBITO")) m = -m;
+                
+                saldos.put(ano, saldos.getOrDefault(ano, 0L) + m);
+            } catch (Exception e) {
+                // Ignora linhas que não estejam no formato de data
+            }
+        }
+        return saldos;
+    }
 
-    @JsonIgnore // Adicione isso para o Jackson não tentar salvar este cálculo
+    // Método para formatar qualquer saldo em minutos para "00h00min"
+    @JsonIgnore
+    @Transient
+    public String formatarQualquerSaldo(long minutos) {
+        long totalMins = Math.abs(minutos);
+        long horas = totalMins / 60;
+        long mins = totalMins % 60;
+        String sinal = (minutos < 0) ? "-" : "";
+        return String.format("%s%02dh%02dmin", sinal, horas, mins);
+    }
+
+    // --- MÉTODOS DE FORMATAÇÃO (Mantidos e Ajustados) ---
+    @JsonIgnore @Transient
     public int getMinsDiariosBase() {
         try {
             if (cargaHorariaStr == null || !cargaHorariaStr.contains(":")) return 480;
             String[] p = cargaHorariaStr.split(":");
-            int totalDigitado = (Integer.parseInt(p[0].trim()) * 60) + Integer.parseInt(p[1].trim());
-            if (totalDigitado <= 0) return 480;
-
+            int total = (Integer.parseInt(p[0].trim()) * 60) + Integer.parseInt(p[1].trim());
             String tipo = (tipoCarga == null) ? "DIÁRIA" : tipoCarga.toUpperCase();
-            if (tipo.contains("SEMANAL")) return totalDigitado / 5;
-            if (tipo.contains("MENSAL")) return totalDigitado / 22;
-            return totalDigitado;
-        } catch (Exception e) {
-            return 480;
-        }
+            if (tipo.contains("SEMANAL")) return total / 5;
+            if (tipo.contains("MENSAL")) return total / 22;
+            return total;
+        } catch (Exception e) { return 480; }
     }
 
-    @JsonIgnore // Ignorar no salvamento JSON
-    public String getCargaDiariaFormatada() {
-        int m = getMinsDiariosBase();
-        return String.format("%02d:%02d", m / 60, m % 60);
-    }
+    @JsonIgnore @Transient
+    public String getResumoAnualFormatado() {
+        StringBuilder resumo = new StringBuilder();
+        Map<Integer, Long> saldos = getSaldosPorAno();
+        int cargaMins = getMinsDiariosBase();
 
-    @JsonIgnore // Ignorar no salvamento JSON
-    public String getCargaSemanalFormatada() {
-        int m = getMinsDiariosBase() * 5;
-        return String.format("%02d:%02d", m / 60, m % 60);
-    }
-
-    @JsonIgnore // Ignorar no salvamento JSON
-    public String getCargaMensalFormatada() {
-        int m = getMinsDiariosBase() * 22;
-        return String.format("%02d:%02d", m / 60, m % 60);
-    }
-
-    @JsonIgnore // Ignorar no salvamento JSON
-    public String getReferenciaDias() {
-        try {
-            int cargaMins = getMinsDiariosBase();
-            if (saldoMinutos == 0) return "";
-            long totalSaldo = Math.abs(saldoMinutos);
-            long dias = totalSaldo / cargaMins;
-            long sobra = totalSaldo % cargaMins;
-            long horas = sobra / 60;
-            long mins = sobra % 60;
-
-            StringBuilder frase = new StringBuilder();
-            frase.append(" (Equivale a: ");
-            if (dias > 0) frase.append(dias).append(dias > 1 ? " Dias" : " Dia");
-            if (horas > 0 || mins > 0) {
-                if (dias > 0) frase.append(" e ");
-                frase.append(String.format("%02dh%02d", horas, mins));
+        for (Map.Entry<Integer, Long> entry : saldos.entrySet()) {
+            long saldoAno = entry.getValue();
+            resumo.append(entry.getKey()).append(": ")
+                  .append(formatarQualquerSaldo(saldoAno))
+                  .append(saldoAno < 0 ? " - Débito" : " - Crédito");
+            
+            // Cálculo de equivalência em dias
+            if (cargaMins > 0) {
+                long dias = Math.abs(saldoAno) / cargaMins;
+                if (dias > 0) resumo.append(" (Equivale a ").append(dias).append(dias > 1 ? " dias)" : " dia)");
             }
-            frase.append(")");
-            return frase.toString();
-        } catch (Exception e) {
-            return "";
+            resumo.append("\n");
         }
+        return resumo.toString();
     }
 
-    @JsonIgnore // Ignorar no salvamento JSON
-    public String getSaldoFormatado() {
-        long totalMins = Math.abs(saldoMinutos);
-        long horas = totalMins / 60;
-        long minutos = totalMins % 60;
-        String sinal = (saldoMinutos < 0) ? "-" : "";
-        return String.format("%s%02d:%02d", sinal, horas, minutos);
-    }
-
-    // --- GETTERS E SETTERS PADRÃO (Estes o Jackson DEVE salvar) ---
+    // Getters e Setters (Mantidos)
     public String getNome() { return nome; }
     public void setNome(String nome) { this.nome = nome; }
     public String getRegistro() { return registro; }
