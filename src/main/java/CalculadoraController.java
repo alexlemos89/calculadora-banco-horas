@@ -41,25 +41,19 @@ public class CalculadoraController {
         return "index"; 
     }
 
-    // --- BOTÃO 2: CONSULTA DE SALDOS (CORREÇÃO DO ERRO 500) ---
     @GetMapping("/consultar")
     public String consultar(Model model) {
         try {
             List<Funcionario> lista = dataService.listarTodos();
-            // Se a lista vier nula do banco, enviamos uma lista vazia para o HTML não travar
-            if (lista == null) {
-                lista = new ArrayList<>();
-            }
+            if (lista == null) lista = new ArrayList<>();
             model.addAttribute("lista", lista);
         } catch (Exception e) {
-            // Se der qualquer erro no banco, garante que a variável 'lista' exista no HTML
             model.addAttribute("lista", new ArrayList<Funcionario>());
             model.addAttribute("erro", "Erro ao acessar o banco de dados.");
         }
         return "consulta";
     }
 
-    // Mantém a função de busca caso use o campo de pesquisa
     @PostMapping("/buscar-dados")
     public String buscarDados(@RequestParam("registro") String registro, Model model) {
         Funcionario f = dataService.buscar(registro);
@@ -68,7 +62,6 @@ public class CalculadoraController {
         } else {
             model.addAttribute("erro", "Registro não encontrado!");
         }
-        // Para a tabela não sumir na busca, recarregamos a lista também
         model.addAttribute("lista", dataService.listarTodos());
         return "consulta";
     }
@@ -112,14 +105,47 @@ public class CalculadoraController {
         return "redirect:/lancar?sucesso";
     }
 
+    // --- GERENCIAR LANÇAMENTOS E DADOS DO FUNCIONÁRIO ---
     @GetMapping("/editar-lancamento")
-    public String edLanc(@RequestParam(required = false) String registro, Model model) {
+    public String edLanc(@RequestParam(required = false) String registro, 
+                         @RequestParam(required = false) Integer idx, Model model) {
         model.addAttribute("lista", dataService.listarTodos());
+        
         if (registro != null) {
             Funcionario fSel = dataService.buscar(registro);
             model.addAttribute("fSel", fSel);
+            
+            // Se clicou em editar um lançamento da lista
+            if (idx != null && fSel != null && idx < fSel.getHistorico().size()) {
+                String linha = fSel.getHistorico().get(idx);
+                try {
+                    model.addAttribute("idxEd", idx);
+                    model.addAttribute("dataEd", linha.split(" - ")[0]);
+                    String info = linha.split(" - ")[1];
+                    model.addAttribute("horaEd", info.split(" ")[0]);
+                    model.addAttribute("tipoEd", linha.toUpperCase().contains("DÉBITO") ? "debito" : "credito");
+                } catch (Exception e) {}
+            }
         }
         return "ajustar";
+    }
+
+    // NOVA FUNÇÃO: Atualiza Nome, Senha e Carga do Funcionário
+    @PostMapping("/atualizar-cadastro-geral")
+    public String atualizarCadastroGeral(@RequestParam String registro, 
+                                         @RequestParam String novoNome,
+                                         @RequestParam String novaSenha,
+                                         @RequestParam String novoTipo,
+                                         @RequestParam String novaCarga) {
+        Funcionario f = dataService.buscar(registro);
+        if (f != null) {
+            f.setNome(novoNome);
+            f.setSenha(novaSenha);
+            f.setTipoCarga(novoTipo);
+            f.setCargaHorariaStr(novaCarga);
+            dataService.salvar(f);
+        }
+        return "redirect:/editar-lancamento?registro=" + registro + "&sucesso_dados";
     }
 
     @PostMapping("/confirmar-edicao")
@@ -139,6 +165,7 @@ public class CalculadoraController {
         return "redirect:/editar-lancamento?registro=" + registro;
     }
 
+    // Mantendo para compatibilidade caso use a outra tela
     @GetMapping("/editar-carga")
     public String edCarga(Model model) {
         model.addAttribute("lista", dataService.listarTodos());
