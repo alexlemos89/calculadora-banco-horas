@@ -2,32 +2,130 @@
 <html lang="pt-br" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
+    <title>Relatório Detalhado</title>
     <style>
-        body { font-family: 'Arial Black', sans-serif; background-color: #f1f1f1; padding: 20px; }
-        .box-relatorio { background: white; padding: 40px; border-radius: 30px; border: 8px solid #f39c12; max-width: 1000px; margin: auto; }
-        h2 { color: #f39c12; font-size: 45px; text-align: center; text-transform: uppercase; }
-        .card { border: 4px solid #333; margin-bottom: 30px; padding: 25px; border-radius: 20px; background: #fff; }
-        .nome { font-size: 32px; color: #2980b9; border-bottom: 3px solid #ccc; padding-bottom: 10px; margin-bottom: 15px; }
-        .item-hist { font-size: 24px; padding: 8px 0; border-bottom: 1px dashed #999; }
-        .resumo-final { text-align: right; margin-top: 20px; font-size: 35px; font-weight: 900; }
-        .ref-dias { color: #d35400; font-size: 26px; }
-        .voltar { display: block; text-align: center; margin-top: 40px; font-size: 28px; color: #666; text-decoration: none; font-weight: 900; }
+        /* Estilo idêntico ao consulta.html */
+        body { 
+            font-family: 'Arial Black', sans-serif; 
+            background-color: #f1f1f1; 
+            padding: 20px; 
+        }
+        .box-g { 
+            background: white; 
+            padding: 40px; 
+            border-radius: 30px; 
+            border: 8px solid #27ae60; 
+            max-width: 1300px; 
+            margin: auto; 
+            text-align: center; 
+        }
+        h2 { 
+            color: #27ae60; 
+            font-size: 45px; 
+            text-transform: uppercase; 
+            margin-bottom: 30px;
+        }
+
+        /* Estilo dos Cards de Funcionários dentro da Caixa Grande */
+        .card-funcionario {
+            background-color: #fff;
+            border: 4px solid #333; /* Borda escura para destacar os nomes */
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 30px;
+            text-align: left;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        /* Nome em Azul conforme sua preferência visual anterior */
+        .card-header {
+            color: #2980b9;
+            font-weight: 900;
+            font-size: 28px;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .historico-linha {
+            font-weight: bold;
+            font-size: 20px;
+            color: #000;
+            border-bottom: 1px dashed #ccc;
+            padding: 8px 0;
+        }
+
+        .area-total {
+            text-align: right;
+            margin-top: 20px;
+        }
+
+        .total-valor {
+            font-size: 35px;
+            font-weight: 900;
+            color: #000;
+        }
+
+        .equivalencia {
+            font-size: 22px;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+
+        .voltar { 
+            display: block; 
+            margin-top: 40px; 
+            font-size: 28px; 
+            color: #666; 
+            text-decoration: none; 
+            font-weight: 900; 
+        }
+
+        /* Cores de Saldo */
+        .positivo { color: #27ae60; }
+        .negativo { color: #c0392b; }
     </style>
 </head>
 <body>
-    <div class="box-relatorio">
+
+    <div class="box-g">
         <h2>4. RELATÓRIO DETALHADO</h2>
-        <div th:each="f : ${lista}" class="card">
-            <div class="nome" th:text="${f.nome + ' (RE: ' + f.registro + ')'}"></div>
-            <div th:each="h : ${f.historico}" class="item-hist" th:text="${h}"></div>
-            <div th:if="${f.historico.empty}" class="item-hist">NENHUM LANÇAMENTO.</div>
+
+        <div th:each="f : ${lista}" class="card-funcionario">
             
-            <div class="resumo-final">
-                TOTAL: <span th:text="${f.getSaldoFormatado()}"></span>
-                <div class="ref-dias" th:text="${f.getReferenciaDias()}"></div>
+            <div class="card-header">
+                <span th:text="${f?.nome}">NOME</span> 
+                <small style="color: #666; font-size: 20px;" th:text="'(RE: ' + ${f?.registro} + ')'"></small>
+            </div>
+
+            <div th:each="h : ${f?.historico}" class="historico-linha">
+                <span th:text="${h}"></span>
+            </div>
+            
+            <div th:if="${#lists.isEmpty(f?.historico)}" class="historico-linha" style="color:#999;">
+                Sem lançamentos registrados.
+            </div>
+
+            <div class="area-total">
+                <div class="total-valor">
+                    TOTAL: <span th:text="${f?.getSaldoFormatado()}">00h00min</span>
+                </div>
+
+                <div class="equivalencia" 
+                     th:classappend="${f?.isSaldoPositivo() ? 'positivo' : 'negativo'}"
+                     th:text="${f?.getTextoEquivalenciaCompleta()}">
+                     Equivalente a...
+                </div>
             </div>
         </div>
+
+        <div th:if="${#lists.isEmpty(lista)}" style="font-size: 24px; color: red; font-weight: bold;">
+            NENHUM FUNCIONÁRIO CADASTRADO.
+        </div>
+
         <a href="/dashboard" class="voltar">← VOLTAR AO MENU</a>
     </div>
+
 </body>
 </html>
