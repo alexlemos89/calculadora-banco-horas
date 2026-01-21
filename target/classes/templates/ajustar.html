@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="pt-br" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: 'Arial Black', sans-serif; background-color: #f1f1f1; padding: 30px; }
+        .box-g { background: white; padding: 40px; border-radius: 30px; border: 8px solid #c35a26; max-width: 1000px; margin: auto; text-align: center; }
+        h2 { color: #c35a26; font-size: 40px; text-transform: uppercase; }
+        label { display: block; text-align: left; font-size: 24px; font-weight: 900; margin-top: 15px; }
+        select, input { width: 100%; padding: 15px; font-size: 24px; border: 3px solid #000; border-radius: 10px; font-weight: bold; }
+        .tabela-hist { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 20px; }
+        .tabela-hist td { padding: 15px; border-bottom: 2px solid #eee; text-align: left; }
+        .btn-edit { padding: 8px 15px; background: #3498db; color: white; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: 900; }
+        .btn-del { padding: 8px 15px; background: #c0392b; color: white; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: 900; margin-left: 5px; }
+        .form-edicao { background: #fff3cd; padding: 30px; border-radius: 20px; border: 4px solid #000; margin-top: 30px; }
+        .btn-save { width: 100%; padding: 20px; background: #27ae60; color: white; font-size: 30px; font-weight: 900; border-radius: 15px; margin-top: 30px; border: none; cursor: pointer; }
+        
+        /* Estilo para a nova seção de dados cadastrais */
+        .secao-dados { background: #e8f4fd; padding: 20px; border: 4px solid #3498db; border-radius: 20px; margin-top: 20px; text-align: left; }
+    </style>
+</head>
+<body>
+    <div class="box-g">
+        <h2>5. GERENCIAR LANÇAMENTOS</h2>
+        
+        <form action="/editar-lancamento" method="get">
+            <label>SELECIONE O FUNCIONÁRIO:</label>
+            <select name="registro" onchange="this.form.submit()">
+                <option value="">-- ESCOLHA UM NOME --</option>
+                <option th:each="f : ${lista}" th:value="${f.registro}" th:text="${f.nome}" th:selected="${fSel != null && f.registro == fSel.registro}"></option>
+            </select>
+        </form>
+
+        <div class="secao-dados" th:if="${fSel != null}">
+            <h3 style="color: #3498db; font-size: 26px;">EDITAR DADOS DO CADASTRO</h3>
+            <form action="/atualizar-cadastro-geral" method="post">
+                <input type="hidden" name="registro" th:value="${fSel.registro}">
+                
+                <label style="font-size: 18px;">NOME DO FUNCIONÁRIO:</label>
+                <input type="text" name="novoNome" th:value="${fSel.nome}" style="font-size: 18px; padding: 10px;">
+                
+                <label style="font-size: 18px;">SENHA:</label>
+                <input type="text" name="novaSenha" th:value="${fSel.senha}" style="font-size: 18px; padding: 10px;">
+                
+                <div style="display: flex; gap: 10px;">
+                    <div style="flex: 1;">
+                        <label style="font-size: 18px;">TIPO:</label>
+                        <select name="novoTipo" style="font-size: 18px; padding: 10px;">
+                            <option value="DIÁRIA" th:selected="${fSel.tipoCarga == 'DIÁRIA'}">DIÁRIA</option>
+                            <option value="SEMANAL" th:selected="${fSel.tipoCarga == 'SEMANAL'}">SEMANAL</option>
+                            <option value="MENSAL" th:selected="${fSel.tipoCarga == 'MENSAL'}">MENSAL</option>
+                        </select>
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="font-size: 18px;">CARGA:</label>
+                        <input type="text" name="novaCarga" th:value="${fSel.cargaHorariaStr}" style="font-size: 18px; padding: 10px;">
+                    </div>
+                </div>
+                <button type="submit" class="btn-save" style="font-size: 20px; padding: 10px; margin-top: 15px;">SALVAR DADOS DO CADASTRO</button>
+            </form>
+        </div>
+
+        <div th:if="${fSel != null}">
+            <label style="margin-top: 30px;">HISTÓRICO DE LANÇAMENTOS:</label>
+            <table class="tabela-hist">
+                <tr th:each="h, iter : ${fSel.historico}">
+                    <td th:text="${h}"></td>
+                    <td style="white-space: nowrap;">
+                        <a th:href="@{/editar-lancamento(registro=${fSel.registro}, idx=${iter.index})}" class="btn-edit">EDITAR</a>
+                        <a th:href="@{/excluir-lancamento(registro=${fSel.registro}, idx=${iter.index})}" 
+                           class="btn-del" onclick="return confirm('EXCLUIR ESTE LANÇAMENTO PARA SEMPRE?')">EXCLUIR</a>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="form-edicao" th:if="${idxEd != null}">
+            <h3 style="font-size: 30px; color: #c35a26;">EDITANDO LANÇAMENTO #<span th:text="${idxEd + 1}"></span></h3>
+            <form action="/confirmar-edicao" method="post">
+                <input type="hidden" name="registro" th:value="${fSel.registro}">
+                <input type="hidden" name="indice" th:value="${idxEd}">
+                <label>DATA:</label>
+                <input type="text" name="dataRef" th:value="${dataEd}" required>
+                <label>HORA (HH:MM):</label>
+                <input type="text" name="valor" th:value="${horaEd}" required>
+                <label>TIPO:</label>
+                <select name="tipo">
+                    <option value="credito" th:selected="${tipoEd == 'credito'}">CRÉDITO (+)</option>
+                    <option value="debito" th:selected="${tipoEd == 'debito'}">DÉBITO (-)</option>
+                </select>
+                <button type="submit" class="btn-save">SALVAR ALTERAÇÃO NO HISTÓRICO</button>
+            </form>
+        </div>
+        
+        <a href="/dashboard" style="display:block; margin-top:30px; font-size:22px; font-weight:900; color:#666; text-decoration:none;">← VOLTAR</a>
+    </div>
+</body>
+</html>
