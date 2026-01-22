@@ -16,6 +16,12 @@ public class CalculadoraController {
     @Autowired
     private DataService dataService;
 
+    // MÉTODO AUXILIAR PARA VERIFICAR SE O USUÁRIO NÃO É ADMIN
+    private boolean isNotAdmin(HttpSession session) {
+        Object admin = session.getAttribute("admin");
+        return admin == null || !(boolean) admin;
+    }
+
     @GetMapping("/")
     public String inicial() { 
         return "login"; 
@@ -23,13 +29,24 @@ public class CalculadoraController {
 
     @PostMapping("/logar")
     public String logar(@RequestParam String usuario, @RequestParam String senha, HttpSession session, Model model) {
+        // 1. LOGIN DO ADMINISTRADOR MESTRE (FIXO)
         if ("administrador".equals(usuario) && "imrealapa".equals(senha)) {
             session.setAttribute("admin", true);
+            session.setAttribute("perfil", "ADMIN");
+            session.setAttribute("nomeUsuario", "Administrador");
             return "redirect:/dashboard";
         }
+
+        // 2. LOGIN DE FUNCIONÁRIO OU ADM CADASTRADO NO BANCO
         Funcionario f = dataService.buscar(usuario);
         if (f != null && f.getSenha().equals(senha)) {
             session.setAttribute("usuarioLogado", f.getRegistro());
+            session.setAttribute("nomeUsuario", f.getNome()); 
+            
+            String perfil = (f.getPerfil() != null) ? f.getPerfil().toUpperCase() : "USER";
+            session.setAttribute("perfil", perfil);
+            session.setAttribute("admin", "ADMIN".equals(perfil));
+
             model.addAttribute("f", f);
             return "redirect:/dashboard"; 
         }
@@ -37,16 +54,29 @@ public class CalculadoraController {
     }
 
     @GetMapping("/dashboard")
-    public String dashboard() { 
+    public String dashboard(HttpSession session, Model model) { 
+        model.addAttribute("nomeExibicao", session.getAttribute("nomeUsuario"));
         return "index"; 
     }
 
     @GetMapping("/consultar")
-    public String consultar(Model model) {
+    public String consultar(HttpSession session, Model model) {
         try {
-            List<Funcionario> lista = dataService.listarTodos();
+            String perfil = (String) session.getAttribute("perfil");
+            String registro = (String) session.getAttribute("usuarioLogado");
+
+            List<Funcionario> lista;
+            if ("USER".equals(perfil)) {
+                lista = new ArrayList<>();
+                Funcionario eu = dataService.buscar(registro);
+                if (eu != null) lista.add(eu);
+            } else {
+                lista = dataService.listarTodos();
+            }
+            
             if (lista == null) lista = new ArrayList<>();
             model.addAttribute("lista", lista);
+            model.addAttribute("nomeExibicao", session.getAttribute("nomeUsuario"));
         } catch (Exception e) {
             model.addAttribute("lista", new ArrayList<Funcionario>());
             model.addAttribute("erro", "Erro ao acessar o banco de dados.");
@@ -55,7 +85,15 @@ public class CalculadoraController {
     }
 
     @PostMapping("/buscar-dados")
-    public String buscarDados(@RequestParam("registro") String registro, Model model) {
+    public String buscarDados(@RequestParam("registro") String registro, Model model, HttpSession session) {
+        // Se for funcionário, ele só pode buscar a si mesmo
+        String perfil = (String) session.getAttribute("perfil");
+        String usuarioLogado = (String) session.getAttribute("usuarioLogado");
+
+        if ("USER".equals(perfil) && !registro.equals(usuarioLogado)) {
+            return "redirect:/consultar?erro_acesso";
+        }
+
         Funcionario f = dataService.buscar(registro);
         if (f != null) {
             model.addAttribute("f", f);
@@ -67,55 +105,65 @@ public class CalculadoraController {
     }
 
     @GetMapping("/relatorio")
-    public String relatorioGeral(Model model) {
-        model.addAttribute("lista", dataService.listarTodos());
+    public String relatorioGeral(HttpSession session, Model model) {
+        String perfil = (String) session.getAttribute("perfil");
+        String registro = (String) session.getAttribute("usuarioLogado");
+
+        if ("USER".equals(perfil)) {
+            List<Funcionario> listaApenasEu = new ArrayList<>();
+            Funcionario eu = dataService.buscar(registro);
+            if (eu != null) listaApenasEu.add(eu);
+            model.addAttribute("lista", listaApenasEu);
+        } else {
+            model.addAttribute("lista", dataService.listarTodos());
+        }
+        
+        model.addAttribute("nomeExibicao", session.getAttribute("nomeUsuario"));
         return "relatorio";
     }
 
+    // --- MÉTODOS PROTEGIDOS: SÓ ADMINISTRADOR ---
+
     @GetMapping("/registrar")
-    public String registrar() { 
+    public String registrar(HttpSession session, Model model) { 
+        if (isNotAdmin(session)) return "redirect:/dashboard";
+        model.addAttribute("nomeExibicao", session.getAttribute("nomeUsuario"));
         return "registro"; 
     }
 
     @PostMapping("/salvar-funcionario")
-    public String salvar(Funcionario f) {
+    public String salvar(Funcionario f, HttpSession session) {
+        if (isNotAdmin(session)) return "redirect:/dashboard";
+        
+        // Garante que se o perfil não for enviado, salva como USER
+        if (f.getPerfil() == null || f.getPerfil().isEmpty()) {
+            f.setPerfil("USER");
+        }
+        
         dataService.salvar(f);
         return "redirect:/registrar?sucesso";
     }
 
     @GetMapping("/lancar")
-    public String lancar(Model model) {
+    public String lancar(HttpSession session, Model model) {
+        if (isNotAdmin(session)) return "redirect:/dashboard";
         model.addAttribute("lista", dataService.listarTodos());
+        model.addAttribute("nomeExibicao", session.getAttribute("nomeUsuario"));
         return "lancamento";
     }
 
-    @PostMapping("/confirmar-lancamento")
-    public String confirmarLancamento(@RequestParam String registro, 
-                                      @RequestParam String valor, 
-                                      @RequestParam String tipo, 
-                                      @RequestParam String dataRef) {
-        try {
-            String[] partes = valor.split(":");
-            int mins = (Integer.parseInt(partes[0].trim()) * 60) + Integer.parseInt(partes[1].trim());
-            if ("debito".equals(tipo)) mins = -mins;
-            dataService.adicionarHoras(registro, mins, dataRef);
-        } catch (Exception e) {
-            return "redirect:/lancar?erro";
-        }
-        return "redirect:/lancar?sucesso";
-    }
-
-    // --- GERENCIAR LANÇAMENTOS E DADOS DO FUNCIONÁRIO ---
     @GetMapping("/editar-lancamento")
     public String edLanc(@RequestParam(required = false) String registro, 
-                         @RequestParam(required = false) Integer idx, Model model) {
+                         @RequestParam(required = false) Integer idx, Model model, HttpSession session) {
+        if (isNotAdmin(session)) return "redirect:/dashboard";
+        
         model.addAttribute("lista", dataService.listarTodos());
+        model.addAttribute("nomeExibicao", session.getAttribute("nomeUsuario"));
         
         if (registro != null) {
             Funcionario fSel = dataService.buscar(registro);
             model.addAttribute("fSel", fSel);
             
-            // Se clicou em editar um lançamento da lista
             if (idx != null && fSel != null && idx < fSel.getHistorico().size()) {
                 String linha = fSel.getHistorico().get(idx);
                 try {
@@ -130,83 +178,69 @@ public class CalculadoraController {
         return "ajustar";
     }
 
-    // NOVA FUNÇÃO: Atualiza Nome, Senha e Carga do Funcionário
-    @PostMapping("/atualizar-cadastro-geral")
-    public String atualizarCadastroGeral(@RequestParam String registro, 
-                                         @RequestParam String novoNome,
-                                         @RequestParam String novaSenha,
-                                         @RequestParam String novoTipo,
-                                         @RequestParam String novaCarga) {
-        Funcionario f = dataService.buscar(registro);
-        if (f != null) {
-            f.setNome(novoNome);
-            f.setSenha(novaSenha);
-            f.setTipoCarga(novoTipo);
-            f.setCargaHorariaStr(novaCarga);
-            dataService.salvar(f);
-        }
-        return "redirect:/editar-lancamento?registro=" + registro + "&sucesso_dados";
-    }
-
-    @PostMapping("/confirmar-edicao")
-    public String confirmarEdicao(String registro, int indice, String valor, String tipo, String dataRef) {
+    @PostMapping("/confirmar-lancamento")
+    public String confirmarLancamento(@RequestParam String registro, 
+                                      @RequestParam String valor, 
+                                      @RequestParam String tipo, 
+                                      @RequestParam String dataRef,
+                                      HttpSession session) {
+        if (isNotAdmin(session)) return "redirect:/dashboard";
         try {
             String[] partes = valor.split(":");
             int mins = (Integer.parseInt(partes[0].trim()) * 60) + Integer.parseInt(partes[1].trim());
             if ("debito".equals(tipo)) mins = -mins;
-            dataService.substituirLancamento(registro, indice, dataRef, mins);
-        } catch (Exception e) {}
-        return "redirect:/editar-lancamento?registro=" + registro;
+            dataService.adicionarHoras(registro, mins, dataRef);
+        } catch (Exception e) {
+            return "redirect:/lancar?erro";
+        }
+        return "redirect:/lancar?sucesso";
     }
 
-    @GetMapping("/excluir-lancamento")
-    public String excluirLanc(@RequestParam String registro, @RequestParam int idx) {
-        dataService.excluirLancamento(registro, idx);
-        return "redirect:/editar-lancamento?registro=" + registro;
-    }
-
-    // Mantendo para compatibilidade caso use a outra tela
     @GetMapping("/editar-carga")
-    public String edCarga(Model model) {
+    public String edCarga(HttpSession session, Model model) {
+        if (isNotAdmin(session)) return "redirect:/dashboard";
         model.addAttribute("lista", dataService.listarTodos());
+        model.addAttribute("nomeExibicao", session.getAttribute("nomeUsuario"));
         return "ajuste_carga"; 
     }
 
-    @PostMapping("/atualizar-so-carga")
-    public String atualizarSoCarga(@RequestParam String registro, 
-                                   @RequestParam String novoTipo, 
-                                   @RequestParam String novaHora) {
-        Funcionario f = dataService.buscar(registro);
-        if (f != null) {
-            f.setTipoCarga(novoTipo);
-            f.setCargaHorariaStr(novaHora);
-            dataService.salvar(f);
-        }
-        return "redirect:/editar-carga?sucesso";
-    }
-
     @GetMapping("/excluir")
-    public String excluir(Model model) {
+    public String excluir(HttpSession session, Model model) {
+        if (isNotAdmin(session)) return "redirect:/dashboard";
         model.addAttribute("lista", dataService.listarTodos());
+        model.addAttribute("nomeExibicao", session.getAttribute("nomeUsuario"));
         return "excluir";
     }
 
+    @GetMapping("/senhas")
+    public String senhas(HttpSession session, Model model) {
+        if (isNotAdmin(session)) return "redirect:/dashboard";
+        model.addAttribute("lista", dataService.listarTodos());
+        model.addAttribute("nomeExibicao", session.getAttribute("nomeUsuario"));
+        return "senhas";
+    }
+
+    // --- MÉTODOS DE AÇÃO PROTEGIDOS ---
+
     @PostMapping("/confirmar-exclusao")
-    public String confirmarExclusao(@RequestParam String registro) {
+    public String confirmarExclusao(@RequestParam String registro, HttpSession session) {
+        if (isNotAdmin(session)) return "redirect:/dashboard";
         dataService.excluir(registro);
         return "redirect:/consultar";
     }
 
-    @GetMapping("/senhas")
-    public String senhas(Model model) {
-        model.addAttribute("lista", dataService.listarTodos());
-        return "senhas";
-    }
-
     @PostMapping("/alterar-senha")
-    public String alterarSenha(@RequestParam String registro, @RequestParam String novaSenha) {
+    public String alterarSenha(@RequestParam String registro, @RequestParam String novaSenha, HttpSession session) {
+        if (isNotAdmin(session)) return "redirect:/dashboard";
         dataService.alterarSenha(registro, novaSenha);
         return "redirect:/dashboard";
+    }
+
+    @GetMapping("/excluir-lancamento")
+    public String excluirLanc(@RequestParam String registro, @RequestParam int idx, HttpSession session) {
+        if (isNotAdmin(session)) return "redirect:/dashboard";
+        dataService.excluirLancamento(registro, idx);
+        return "redirect:/editar-lancamento?registro=" + registro;
     }
 
     @GetMapping("/logout")

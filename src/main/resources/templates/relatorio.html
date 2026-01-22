@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <title>Relatório Detalhado</title>
     <style>
-        /* Estilo idêntico ao consulta.html */
         body { 
             font-family: 'Arial Black', sans-serif; 
             background-color: #f1f1f1; 
@@ -23,13 +22,19 @@
             color: #27ae60; 
             font-size: 45px; 
             text-transform: uppercase; 
+            margin-bottom: 5px;
+        }
+        /* Estilo para mostrar quem está logado */
+        .user-info {
+            font-size: 20px;
+            color: #2980b9;
             margin-bottom: 30px;
+            text-transform: uppercase;
         }
 
-        /* Estilo dos Cards de Funcionários dentro da Caixa Grande */
         .card-funcionario {
             background-color: #fff;
-            border: 4px solid #333; /* Borda escura para destacar os nomes */
+            border: 4px solid #333; 
             border-radius: 20px;
             padding: 25px;
             margin-bottom: 30px;
@@ -37,7 +42,6 @@
             box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }
 
-        /* Nome em Azul conforme sua preferência visual anterior */
         .card-header {
             color: #2980b9;
             font-weight: 900;
@@ -82,7 +86,6 @@
             font-weight: 900; 
         }
 
-        /* Cores de Saldo */
         .positivo { color: #27ae60; }
         .negativo { color: #c0392b; }
     </style>
@@ -91,6 +94,9 @@
 
     <div class="box-g">
         <h2>4. RELATÓRIO DETALHADO</h2>
+        <div class="user-info">
+            Consultado por: <span th:text="${nomeExibicao}">USUÁRIO</span>
+        </div>
 
         <div th:each="f : ${lista}" class="card-funcionario">
             
@@ -121,7 +127,7 @@
         </div>
 
         <div th:if="${#lists.isEmpty(lista)}" style="font-size: 24px; color: red; font-weight: bold;">
-            NENHUM FUNCIONÁRIO CADASTRADO.
+            NENHUM DADO ENCONTRADO PARA ESTE PERFIL.
         </div>
 
         <a href="/dashboard" class="voltar">← VOLTAR AO MENU</a>

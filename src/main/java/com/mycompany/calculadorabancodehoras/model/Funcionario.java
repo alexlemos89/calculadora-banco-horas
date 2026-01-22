@@ -17,6 +17,9 @@ public class Funcionario implements Serializable {
     private String cargaHorariaStr;
     private String senha;
     private long saldoMinutos = 0;
+    
+    // ADIÇÃO PARA CONTROLE DE ACESSO (ADMIN ou USER)
+    private String perfil; 
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "historico_detalhado", joinColumns = @JoinColumn(name = "funcionario_id"))
@@ -49,7 +52,7 @@ public class Funcionario implements Serializable {
         return String.format("%s%02dh%02dmin", sinal, horas, mins);
     }
 
-    // --- MÉTODOS QUE ESTAVAM FALTANDO (CORREÇÃO DO ERRO 500) ---
+    // --- MÉTODOS DE FORMATAÇÃO ---
 
     @JsonIgnore @Transient
     public String getCargaDiariaFormatada() {
@@ -137,4 +140,8 @@ public class Funcionario implements Serializable {
     public void setSaldoMinutos(long saldoMinutos) { this.saldoMinutos = saldoMinutos; }
     public List<String> getHistorico() { return historico; }
     public void setHistorico(List<String> historico) { this.historico = (historico != null) ? historico : new ArrayList<>(); }
+    
+    // Getter e Setter para o novo campo Perfil
+    public String getPerfil() { return perfil; }
+    public void setPerfil(String perfil) { this.perfil = perfil; }
 }
