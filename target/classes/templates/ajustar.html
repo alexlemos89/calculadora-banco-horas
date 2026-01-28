@@ -33,19 +33,19 @@
 
         <div class="secao-dados" th:if="${fSel != null}">
             <h3 style="color: #3498db; font-size: 26px;">EDITAR DADOS DO CADASTRO</h3>
-            <form action="/atualizar-cadastro-geral" method="post">
+            <form action="/editar-funcionario" method="post">
                 <input type="hidden" name="registro" th:value="${fSel.registro}">
                 
                 <label style="font-size: 18px;">NOME DO FUNCIONÁRIO:</label>
-                <input type="text" name="novoNome" th:value="${fSel.nome}" style="font-size: 18px; padding: 10px;">
+                <input type="text" name="nome" th:value="${fSel.nome}" style="font-size: 18px; padding: 10px;">
                 
                 <label style="font-size: 18px;">SENHA:</label>
-                <input type="text" name="novaSenha" th:value="${fSel.senha}" style="font-size: 18px; padding: 10px;">
+                <input type="text" name="senha" th:value="${fSel.senha}" style="font-size: 18px; padding: 10px;">
                 
                 <div style="display: flex; gap: 10px;">
                     <div style="flex: 1;">
                         <label style="font-size: 18px;">TIPO:</label>
-                        <select name="novoTipo" style="font-size: 18px; padding: 10px;">
+                        <select name="tipoCarga" style="font-size: 18px; padding: 10px;">
                             <option value="DIÁRIA" th:selected="${fSel.tipoCarga == 'DIÁRIA'}">DIÁRIA</option>
                             <option value="SEMANAL" th:selected="${fSel.tipoCarga == 'SEMANAL'}">SEMANAL</option>
                             <option value="MENSAL" th:selected="${fSel.tipoCarga == 'MENSAL'}">MENSAL</option>
@@ -53,7 +53,7 @@
                     </div>
                     <div style="flex: 1;">
                         <label style="font-size: 18px;">CARGA:</label>
-                        <input type="text" name="novaCarga" th:value="${fSel.cargaHorariaStr}" style="font-size: 18px; padding: 10px;">
+                        <input type="text" name="cargaHorariaStr" th:value="${fSel.cargaHorariaStr}" style="font-size: 18px; padding: 10px;">
                     </div>
                 </div>
                 <button type="submit" class="btn-save" style="font-size: 20px; padding: 10px; margin-top: 15px;">SALVAR DADOS DO CADASTRO</button>
@@ -76,7 +76,7 @@
 
         <div class="form-edicao" th:if="${idxEd != null}">
             <h3 style="font-size: 30px; color: #c35a26;">EDITANDO LANÇAMENTO #<span th:text="${idxEd + 1}"></span></h3>
-            <form action="/confirmar-edicao" method="post">
+            <form action="/confirmar-lancamento" method="post">
                 <input type="hidden" name="registro" th:value="${fSel.registro}">
                 <input type="hidden" name="indice" th:value="${idxEd}">
                 <label>DATA:</label>

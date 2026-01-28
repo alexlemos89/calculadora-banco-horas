@@ -1,4 +1,4 @@
-package com.mycompany.calculadorabancodehoras;
+package com.mycompany.calculadorabancodehoras.model; // ADICIONADO .model AQUI
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import javax.persistence.*;
@@ -17,17 +17,14 @@ public class Funcionario implements Serializable {
     private String cargaHorariaStr;
     private String senha;
     private long saldoMinutos = 0;
-    
-    // ADIÇÃO PARA CONTROLE DE ACESSO (ADMIN ou USER)
     private String perfil; 
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "historico_detalhado", joinColumns = @JoinColumn(name = "funcionario_id"))
+    @Column(name = "item_historico", columnDefinition = "TEXT")
     private List<String> historico = new ArrayList<>();
 
     public Funcionario() {}
-
-    // --- CÁLCULOS BÁSICOS ---
 
     @JsonIgnore @Transient
     public int getMinsDiariosBase() {
@@ -52,8 +49,6 @@ public class Funcionario implements Serializable {
         return String.format("%s%02dh%02dmin", sinal, horas, mins);
     }
 
-    // --- MÉTODOS DE FORMATAÇÃO ---
-
     @JsonIgnore @Transient
     public String getCargaDiariaFormatada() {
         return (this.cargaHorariaStr == null || this.cargaHorariaStr.isEmpty()) ? "00:00" : this.cargaHorariaStr;
@@ -76,8 +71,6 @@ public class Funcionario implements Serializable {
         int diario = getMinsDiariosBase();
         return diario == 0 ? "0" : String.valueOf(Math.abs(saldoMinutos) / diario);
     }
-
-    // --- MÉTODOS DE HISTÓRICO E SALDO ---
 
     @JsonIgnore @Transient
     public Map<Integer, Long> getSaldosPorAno() {
@@ -125,7 +118,6 @@ public class Funcionario implements Serializable {
         return String.format("Equivalente a %d dias, %d horas e %d minutos", dias, horas, minutos);
     }
 
-    // --- GETTERS E SETTERS ---
     public String getNome() { return nome; }
     public void setNome(String nome) { this.nome = nome; }
     public String getRegistro() { return registro; }
@@ -140,8 +132,6 @@ public class Funcionario implements Serializable {
     public void setSaldoMinutos(long saldoMinutos) { this.saldoMinutos = saldoMinutos; }
     public List<String> getHistorico() { return historico; }
     public void setHistorico(List<String> historico) { this.historico = (historico != null) ? historico : new ArrayList<>(); }
-    
-    // Getter e Setter para o novo campo Perfil
     public String getPerfil() { return perfil; }
     public void setPerfil(String perfil) { this.perfil = perfil; }
 }

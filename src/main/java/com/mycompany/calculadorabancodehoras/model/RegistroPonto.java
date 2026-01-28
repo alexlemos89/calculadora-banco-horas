@@ -33,11 +33,11 @@ public class RegistroPonto {
     @Column(name = "total_horas")
     private String totalHoras;
 
-    // --- CONSTRUTORES ---
+    
     public RegistroPonto() {
     }
 
-    // --- GETTERS E SETTERS (Essenciais para o banco de dados funcionar) ---
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 

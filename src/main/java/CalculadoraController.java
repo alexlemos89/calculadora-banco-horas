@@ -1,6 +1,7 @@
 package com.mycompany.calculadorabancodehoras;
 
 import com.mycompany.calculadorabancodehoras.service.DataService;
+import com.mycompany.calculadorabancodehoras.model.Funcionario;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -16,7 +17,6 @@ public class CalculadoraController {
     @Autowired
     private DataService dataService;
 
-    // MÉTODO AUXILIAR PARA VERIFICAR SE O USUÁRIO NÃO É ADMIN
     private boolean isNotAdmin(HttpSession session) {
         Object admin = session.getAttribute("admin");
         return admin == null || !(boolean) admin;
@@ -29,7 +29,6 @@ public class CalculadoraController {
 
     @PostMapping("/logar")
     public String logar(@RequestParam String usuario, @RequestParam String senha, HttpSession session, Model model) {
-        // 1. LOGIN DO ADMINISTRADOR MESTRE (FIXO)
         if ("administrador".equals(usuario) && "imrealapa".equals(senha)) {
             session.setAttribute("admin", true);
             session.setAttribute("perfil", "ADMIN");
@@ -37,7 +36,6 @@ public class CalculadoraController {
             return "redirect:/dashboard";
         }
 
-        // 2. LOGIN DE FUNCIONÁRIO OU ADM CADASTRADO NO BANCO
         Funcionario f = dataService.buscar(usuario);
         if (f != null && f.getSenha().equals(senha)) {
             session.setAttribute("usuarioLogado", f.getRegistro());
@@ -86,7 +84,6 @@ public class CalculadoraController {
 
     @PostMapping("/buscar-dados")
     public String buscarDados(@RequestParam("registro") String registro, Model model, HttpSession session) {
-        // Se for funcionário, ele só pode buscar a si mesmo
         String perfil = (String) session.getAttribute("perfil");
         String usuarioLogado = (String) session.getAttribute("usuarioLogado");
 
@@ -122,8 +119,6 @@ public class CalculadoraController {
         return "relatorio";
     }
 
-    // --- MÉTODOS PROTEGIDOS: SÓ ADMINISTRADOR ---
-
     @GetMapping("/registrar")
     public String registrar(HttpSession session, Model model) { 
         if (isNotAdmin(session)) return "redirect:/dashboard";
@@ -134,14 +129,21 @@ public class CalculadoraController {
     @PostMapping("/salvar-funcionario")
     public String salvar(Funcionario f, HttpSession session) {
         if (isNotAdmin(session)) return "redirect:/dashboard";
-        
-        // Garante que se o perfil não for enviado, salva como USER
         if (f.getPerfil() == null || f.getPerfil().isEmpty()) {
             f.setPerfil("USER");
         }
-        
         dataService.salvar(f);
         return "redirect:/registrar?sucesso";
+    }
+
+    @PostMapping("/editar-funcionario")
+    public String editarFuncionario(Funcionario f, HttpSession session) {
+        if (isNotAdmin(session)) return "redirect:/dashboard";
+        if (f.getPerfil() == null || f.getPerfil().isEmpty()) {
+            f.setPerfil("USER");
+        }
+        dataService.salvar(f);
+        return "redirect:/consultar?sucesso_edicao";
     }
 
     @GetMapping("/lancar")
@@ -204,6 +206,27 @@ public class CalculadoraController {
         return "ajuste_carga"; 
     }
 
+    @PostMapping("/atualizar-so-carga")
+    public String atualizarSoCarga(@RequestParam String registro, 
+                                   @RequestParam String novoTipo, 
+                                   @RequestParam String novaHora, 
+                                   HttpSession session) {
+        if (isNotAdmin(session)) return "redirect:/dashboard";
+        try {
+            // Buscamos o objeto completo do banco para não perder dados obrigatórios
+            Funcionario f = dataService.buscar(registro);
+            if (f != null) {
+                f.setTipoCarga(novoTipo);
+                f.setCargaHorariaStr(novaHora);
+                dataService.salvar(f); // O Service agora salva o objeto com Nome/Senha preservados
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "redirect:/editar-carga?erro";
+        }
+        return "redirect:/dashboard?sucesso_carga";
+    }
+
     @GetMapping("/excluir")
     public String excluir(HttpSession session, Model model) {
         if (isNotAdmin(session)) return "redirect:/dashboard";
@@ -219,8 +242,6 @@ public class CalculadoraController {
         model.addAttribute("nomeExibicao", session.getAttribute("nomeUsuario"));
         return "senhas";
     }
-
-    // --- MÉTODOS DE AÇÃO PROTEGIDOS ---
 
     @PostMapping("/confirmar-exclusao")
     public String confirmarExclusao(@RequestParam String registro, HttpSession session) {
